@@ -1,0 +1,37 @@
+- name: Deploy Apache HTTPD Docker Container with Custom Page
+  hosts: webservers
+  become: true
+
+  vars:
+    project_dir: /opt/test
+    image_name: custom_httpd_image
+    container_name: custom_httpd_container
+    host_port: 1234
+
+  tasks:
+
+    - name: Copy Dockerfile to servers
+      copy:
+        src: Dockerfile
+        dest: "{{ project_dir }}/Dockerfile"
+
+    - name: Copy custom index.html
+      copy:
+        src: index.html
+        dest: "{{ project_dir }}/index.html"
+
+    - name: Build HTTPD Docker image
+      command: docker build -t {{ image_name }} .
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Stop old container if exists
+      command: docker rm -f {{ container_name }}
+      ignore_errors: yes
+
+    - name: Run Apache container
+      command: >
+        docker run -d
+        -p {{ host_port }}:80
+        --name {{ container_name }}
+        {{ image_name }}
